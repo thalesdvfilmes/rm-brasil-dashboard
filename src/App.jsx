@@ -9,7 +9,7 @@ import {
 // DATA LAYER — unchanged structure
 // ─────────────────────────────────────────────
 
-const EDITORS  = ["Thales", "Enzo", "Matheus", "Mazala", "Renan"];
+const EDITORS  = ["Thales", "Enzo", "Renan", "Mazala", "Matheus"];
 const COLORS   = ["#E8B84B", "#E8453C", "#4ECDC4", "#A78BFA", "#2ECC71"];
 const CLIENTES = ["Banco Digital","Saúde Total","Varejo XYZ","Construtora Sul","Agência Nova"];
 const MONTHS   = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
@@ -37,9 +37,12 @@ const generateDaily = () => {
 
 const generateEditors = () => EDITORS.map((nome,i) => ({
   nome, cor: COLORS[i],
-  entregas: rnd(15,40), versoes_media: +(Math.random()*2+1.2).toFixed(1),
-  taxa_aprovacao: rnd(50,85), prazo: rnd(65,98),
-  correcoes_media: +(Math.random()*3+0.5).toFixed(1), pontuacao: rnd(60,94),
+  entregas:        i===0 ? rnd(35,40)  : rnd(15,35),
+  versoes_media:   i===0 ? +(Math.random()*0.6+1.0).toFixed(1) : +(Math.random()*2+1.4).toFixed(1),
+  taxa_aprovacao:  i===0 ? rnd(80,95)  : rnd(48,82),
+  prazo:           i===0 ? rnd(92,99)  : rnd(62,95),
+  correcoes_media: i===0 ? +(Math.random()*0.8+0.2).toFixed(1) : +(Math.random()*3+0.8).toFixed(1),
+  pontuacao:       i===0 ? rnd(90,99)  : rnd(58,88),
 }));
 
 const generateRadar = () => [
@@ -96,6 +99,39 @@ const generateDailyDeliveries = () => {
 };
 
 const DAILY_DELIVERIES = generateDailyDeliveries();
+
+
+// ── Detail generators for secondary metrics ──────────────────────────────────
+const getDayDetail = (dia, metric) => {
+  const base = DAILY_DELIVERIES[dia] || [];
+  if (metric === "entregas") return base;
+
+  if (metric === "versoes") {
+    // Return projects that opened new versions that day
+    return base.map(e => ({
+      ...e,
+      versao: rnd(2,4),
+      detail: `Abriu v${rnd(2,4)} após ${rnd(1,3)} rodada${rnd(1,3)>1?"s":""} de revisão`,
+    })).filter((_,i) => i < rnd(2, base.length));
+  }
+
+  if (metric === "correcoes") {
+    // Return projects that received corrections
+    const tipos = ["Áudio","Corte","Cor","Legenda","Motion","Exportação"];
+    return base.map(e => ({
+      ...e,
+      detail: `${rnd(1,4)} correç${rnd(1,4)>1?"ões":"ão"} · ${tipos[rnd(0,tipos.length-1)]}`,
+      gravidade: ["baixa","média","alta"][rnd(0,2)],
+    })).filter((_,i) => i < rnd(1, Math.max(1,base.length-1)));
+  }
+
+  if (metric === "aprovacao_v1") {
+    const aprovados = base.filter((_,i)=>i % 2 === 0).map(e => ({...e, aprovado: true}));
+    const reprovados = base.filter((_,i)=>i % 2 !== 0).map(e => ({...e, aprovado: false, motivo: ["Áudio","Corte","Cor"][rnd(0,2)]}));
+    return [...aprovados, ...reprovados];
+  }
+  return base;
+};
 
 const DAILY  = generateDaily();
 const ERROS  = generateErros();
@@ -213,7 +249,9 @@ export default function App() {
   const [filtCli,setFiltCli]       = useState("todos");
   const [filtCat,setFiltCat]       = useState("todos");
   const [filtGrav,setFiltGrav]     = useState("todos");
-  const [diaDetalhe,setDiaDetalhe] = useState(null);
+  const [diaDetalhe,setDiaDetalhe]       = useState(null);
+  const [metricDetalhe,setMetricDetalhe] = useState("entregas");
+  const [ovDia,setOvDia]                 = useState(null);
   const [feed,setFeed]             = useState([
     {time:"14:32",text:"Lucas M. entregou v2 — Spot Banco Digital",cor:COLORS[0]},
     {time:"13:15",text:"Fernanda R. aprovada na v1 — Institucional Saúde",cor:COLORS[1]},
@@ -509,161 +547,154 @@ export default function App() {
           )}
 
           {/* ───────────── HISTÓRICO ───────────── */}
-          {tab==="histórico" && (
-            <div className="fade">
+          {tab==="histórico" && (() => {
 
-              {/* MAIN: Entregas por dia — clicável */}
-              <div style={{border:`1px solid ${T.border}`,marginBottom:1}}>
-                <div style={{padding:"20px 24px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"baseline",gap:12}}>
-                  <div style={{width:3,height:22,background:T.amber}}/>
-                  <span style={{fontFamily:T.font,fontSize:22,fontWeight:700,letterSpacing:2,color:T.white}}>ENTREGAS POR DIA</span>
-                  <span style={{fontFamily:T.mono,fontSize:9,color:T.muted,letterSpacing:2}}>30 DIAS · CLIQUE NO DIA PARA DETALHAR</span>
-                  {diaDetalhe && (
-                    <button onClick={()=>setDiaDetalhe(null)} style={{marginLeft:"auto",background:"none",border:`1px solid ${T.border}`,color:T.muted,fontFamily:T.mono,fontSize:9,letterSpacing:2,padding:"4px 10px",cursor:"pointer"}}>
-                      FECHAR ✕
-                    </button>
-                  )}
+            const METRIC_CONFIG = {
+              entregas:    { label:"ENTREGAS POR DIA",    cor:T.amber,   legendDia:(d)=>`${(DAILY_DELIVERIES[d]||[]).length} entrega${(DAILY_DELIVERIES[d]||[]).length!==1?"s":""}` },
+              versoes:     { label:"VERSÕES ABERTAS",     cor:"#A78BFA", legendDia:(d)=>`${(getDayDetail(d,"versoes")||[]).length} projeto${(getDayDetail(d,"versoes")||[]).length!==1?"s":""} com nova versão` },
+              correcoes:   { label:"CORREÇÕES POR DIA",   cor:T.red,     legendDia:(d)=>`${(getDayDetail(d,"correcoes")||[]).length} projeto${(getDayDetail(d,"correcoes")||[]).length!==1?"s":""} corrigido${(getDayDetail(d,"correcoes")||[]).length!==1?"s":""}` },
+              aprovacao_v1:{ label:"APROVAÇÃO v1 (%)",    cor:T.green,   legendDia:(d)=>{ const i=getDayDetail(d,"aprovacao_v1")||[]; const ok=i.filter(x=>x.aprovado).length; return `${ok}/${i.length} aprovado${ok!==1?"s":""}`;} },
+            };
+
+            const openDay = (dia, metric) => {
+              if(diaDetalhe===dia && metricDetalhe===metric) { setDiaDetalhe(null); }
+              else { setDiaDetalhe(dia); setMetricDetalhe(metric); }
+            };
+
+            const DetailPanel = ({metric}) => {
+              const items = getDayDetail(diaDetalhe, metric);
+              const cfg   = METRIC_CONFIG[metric];
+              return (
+                <div style={{padding:"20px",background:"rgba(232,184,75,0.03)",animation:"fadeUp .25s ease both",overflowY:"auto",maxHeight:400,borderLeft:`1px solid ${T.border}`}}>
+                  <div style={{fontFamily:T.mono,fontSize:9,color:T.muted,letterSpacing:3,marginBottom:4}}>// {cfg.label}</div>
+                  <div style={{fontFamily:T.font,fontSize:28,fontWeight:900,letterSpacing:2,color:cfg.cor,lineHeight:1,marginBottom:6}}>{diaDetalhe}</div>
+                  <div style={{fontFamily:T.mono,fontSize:9,color:T.muted,letterSpacing:2,marginBottom:16}}>{cfg.legendDia(diaDetalhe).toUpperCase()}</div>
+                  {items.length===0 && <div style={{fontFamily:T.mono,fontSize:10,color:T.muted}}>Sem registros.</div>}
+                  {items.map((e,i)=>(
+                    <div key={e.id||i} style={{borderBottom:`1px solid ${T.border}`,paddingBottom:12,marginBottom:12,animation:"fadeUp .3s ease both",animationDelay:`${i*0.04}s`}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                        <div style={{width:2,height:28,background:e.cor,flexShrink:0}}/>
+                        <div>
+                          <div style={{fontFamily:T.font,fontSize:14,fontWeight:700,letterSpacing:1,color:T.white}}>{e.editor.toUpperCase()}</div>
+                          <div style={{fontFamily:T.mono,fontSize:9,color:T.muted,marginTop:1}}>{e.hora}</div>
+                        </div>
+                      </div>
+                      <div style={{fontFamily:T.mono,fontSize:11,color:T.white,marginBottom:4,paddingLeft:10}}>{e.projeto}</div>
+                      <div style={{display:"flex",gap:8,paddingLeft:10,flexWrap:"wrap"}}>
+                        <span style={{fontFamily:T.mono,fontSize:9,color:T.muted}}>{e.cliente}</span>
+                        {metric==="entregas" && <>
+                          <span style={{fontFamily:T.mono,fontSize:9,color:T.muted}}>·</span>
+                          <span style={{fontFamily:T.mono,fontSize:9,color:T.muted}}>V{e.versao}</span>
+                          <span style={{fontFamily:T.mono,fontSize:9,color:T.muted}}>·</span>
+                          <span style={{fontFamily:T.mono,fontSize:9,color:e.status==="Aprovado"?T.green:e.status==="Em revisão"?T.amber:T.red}}>{e.status?.toUpperCase()}</span>
+                        </>}
+                        {metric==="versoes" && <>
+                          <span style={{fontFamily:T.mono,fontSize:9,color:T.muted}}>·</span>
+                          <span style={{fontFamily:T.mono,fontSize:9,color:"#A78BFA"}}>{e.detail}</span>
+                        </>}
+                        {metric==="correcoes" && <>
+                          <span style={{fontFamily:T.mono,fontSize:9,color:T.muted}}>·</span>
+                          <span style={{fontFamily:T.mono,fontSize:9,color:T.red}}>{e.detail}</span>
+                          <span style={{fontFamily:T.mono,fontSize:9,color:T.muted}}>·</span>
+                          <span style={{fontFamily:T.mono,fontSize:9,color:e.gravidade==="alta"?T.red:e.gravidade==="média"?T.amber:T.green}}>{e.gravidade?.toUpperCase()}</span>
+                        </>}
+                        {metric==="aprovacao_v1" && <>
+                          <span style={{fontFamily:T.mono,fontSize:9,color:T.muted}}>·</span>
+                          <span style={{fontFamily:T.mono,fontSize:9,fontWeight:700,color:e.aprovado?T.green:T.red}}>{e.aprovado?"APROVADO V1":"REPROVADO V1"}</span>
+                          {!e.aprovado && <><span style={{fontFamily:T.mono,fontSize:9,color:T.muted}}>·</span><span style={{fontFamily:T.mono,fontSize:9,color:T.red}}>{e.motivo}</span></>}
+                        </>}
+                      </div>
+                    </div>
+                  ))}
                 </div>
+              );
+            };
 
-                <div style={{display:"grid",gridTemplateColumns:diaDetalhe?"1fr 340px":"1fr",transition:"grid-template-columns .3s ease"}}>
-
-                  {/* CHART */}
-                  <div style={{padding:"20px 24px",borderRight:diaDetalhe?`1px solid ${T.border}`:"none"}}>
-                    <ResponsiveContainer width="100%" height={220}>
-                      <BarChart
-                        data={DAILY}
-                        margin={{top:4,right:4,bottom:0,left:-20}}
-                        onClick={d => d?.activePayload && setDiaDetalhe(d.activePayload[0]?.payload?.dia)}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false}/>
-                        <XAxis dataKey="dia" tick={{fill:T.muted,fontSize:8,fontFamily:T.mono}} tickLine={false} axisLine={false} interval={2}/>
-                        <YAxis tick={{fill:T.muted,fontSize:8,fontFamily:T.mono}} tickLine={false} axisLine={false}/>
-                        <Tooltip
-                          content={({active,payload,label})=>{
+            const ChartBlock = ({metric,height=160,isFirst=false}) => {
+              const cfg  = METRIC_CONFIG[metric];
+              const open = diaDetalhe && metricDetalhe===metric;
+              return (
+                <div style={{background:isFirst?"transparent":T.surface,borderBottom:`1px solid ${T.border}`}}>
+                  <div style={{display:"flex",alignItems:"baseline",gap:12,padding:"18px 24px 12px",borderBottom:open?`1px solid ${T.border}`:"none"}}>
+                    <div style={{width:3,height:isFirst?22:18,background:cfg.cor}}/>
+                    <span style={{fontFamily:T.font,fontSize:isFirst?22:16,fontWeight:700,letterSpacing:2,color:T.white}}>{cfg.label}</span>
+                    <span style={{fontFamily:T.mono,fontSize:9,color:T.muted,letterSpacing:2}}>30 DIAS · CLIQUE PARA DETALHAR</span>
+                    {open && (
+                      <button onClick={()=>setDiaDetalhe(null)} style={{marginLeft:"auto",background:"none",border:`1px solid ${T.border}`,color:T.muted,fontFamily:T.mono,fontSize:9,letterSpacing:2,padding:"3px 9px",cursor:"pointer"}}>FECHAR ✕</button>
+                    )}
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:open?"1fr 340px":"1fr",transition:"grid-template-columns .25s ease"}}>
+                    <div style={{padding:isFirst?"0 24px 20px":"16px 24px"}}>
+                      <ResponsiveContainer width="100%" height={height}>
+                        <LineChart data={DAILY} margin={{top:4,right:4,bottom:0,left:-20}}
+                          onClick={d=>d?.activePayload && openDay(d.activePayload[0]?.payload?.dia, metric)}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false}/>
+                          <XAxis dataKey="dia" tick={{fill:T.muted,fontSize:8,fontFamily:T.mono}} tickLine={false} axisLine={false} interval={isFirst?2:6}/>
+                          <YAxis tick={{fill:T.muted,fontSize:8,fontFamily:T.mono}} tickLine={false} axisLine={false}/>
+                          <Tooltip content={({active,payload,label})=>{
                             if(!active||!payload?.length) return null;
-                            const entregas = DAILY_DELIVERIES[label] || [];
+                            const items = getDayDetail(label, metric);
                             return (
-                              <div style={{background:"#0E0E0E",border:`1px solid ${T.amber}55`,padding:"12px 14px",fontFamily:T.mono,fontSize:11,minWidth:180}}>
-                                <div style={{color:T.amber,fontFamily:T.font,fontSize:14,fontWeight:700,letterSpacing:2,marginBottom:8}}>{label}</div>
-                                <div style={{color:T.muted,marginBottom:6,fontSize:9,letterSpacing:2}}>{payload[0]?.value} ENTREGA{payload[0]?.value!==1?"S":""}</div>
-                                {entregas.slice(0,3).map((e,i)=>(
-                                  <div key={i} style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
-                                    <div style={{width:2,height:12,background:e.cor,flexShrink:0}}/>
+                              <div style={{background:"#0E0E0E",border:`1px solid ${cfg.cor}55`,padding:"10px 12px",fontFamily:T.mono,fontSize:11,minWidth:170}}>
+                                <div style={{color:cfg.cor,fontFamily:T.font,fontSize:13,fontWeight:700,letterSpacing:2,marginBottom:6}}>{label}</div>
+                                <div style={{color:T.muted,fontSize:9,letterSpacing:2,marginBottom:5}}>{payload[0]?.value} {metric==="aprovacao_v1"?"%":""}</div>
+                                {items.slice(0,3).map((e,i)=>(
+                                  <div key={i} style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
+                                    <div style={{width:2,height:10,background:e.cor}}/>
                                     <span style={{color:T.white,fontSize:10}}>{e.editor.split(" ")[0]} · {e.projeto}</span>
                                   </div>
                                 ))}
-                                {entregas.length>3 && <div style={{color:T.muted,fontSize:9,marginTop:4}}>+ {entregas.length-3} mais · clique para ver</div>}
+                                {items.length>3&&<div style={{color:T.muted,fontSize:9,marginTop:3}}>+ {items.length-3} mais</div>}
+                                <div style={{color:T.muted,fontSize:9,marginTop:6,borderTop:`1px solid ${T.border}`,paddingTop:5}}>CLIQUE PARA EXPANDIR</div>
                               </div>
                             );
-                          }}
-                        />
-                        {DAILY.map((d,i)=>(
-                          <Cell key={`cell-${i}`}/>
-                        ))}
-                        <Bar dataKey="entregas" name="Entregas" cursor="pointer" radius={[2,2,0,0]}>
-                          {DAILY.map((d,i)=>(
-                            <Cell
-                              key={`cell-${i}`}
-                              fill={diaDetalhe===d.dia ? T.amber : `${T.amber}55`}
-                              stroke={diaDetalhe===d.dia ? T.amber : "none"}
-                              strokeWidth={diaDetalhe===d.dia ? 1 : 0}
-                            />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-
-                    {/* DAY PILLS row */}
-                    <div style={{display:"flex",gap:4,marginTop:16,flexWrap:"wrap"}}>
-                      {DAILY.map((d,i)=>{
-                        const qtd = (DAILY_DELIVERIES[d.dia]||[]).length;
-                        const isSelected = diaDetalhe === d.dia;
-                        return (
-                          <button key={i} onClick={()=>setDiaDetalhe(isSelected?null:d.dia)} style={{
-                            background: isSelected ? T.amber : "rgba(255,255,255,0.04)",
-                            border: `1px solid ${isSelected ? T.amber : T.border}`,
-                            color: isSelected ? "#060606" : T.muted,
-                            fontFamily: T.mono, fontSize: 9, letterSpacing: 1,
-                            padding: "3px 7px", cursor:"pointer",
-                            transition:"all .15s",
-                          }}>
-                            {d.dia.split("/")[0]}
-                            <span style={{marginLeft:4,opacity:.7}}>{qtd}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* DETAIL PANEL */}
-                  {diaDetalhe && (
-                    <div style={{padding:"20px 20px",background:"rgba(232,184,75,0.03)",animation:"fadeUp .25s ease both",overflowY:"auto",maxHeight:360}}>
-                      <div style={{fontFamily:T.mono,fontSize:9,color:T.muted,letterSpacing:3,marginBottom:4}}>// ENTREGAS DO DIA</div>
-                      <div style={{fontFamily:T.font,fontSize:28,fontWeight:900,letterSpacing:2,color:T.amber,lineHeight:1,marginBottom:16}}>{diaDetalhe}</div>
-                      <div style={{fontFamily:T.mono,fontSize:9,color:T.muted,letterSpacing:2,marginBottom:14}}>
-                        {(DAILY_DELIVERIES[diaDetalhe]||[]).length} ENTREGA{(DAILY_DELIVERIES[diaDetalhe]||[]).length!==1?"S":""}
-                      </div>
-                      {(DAILY_DELIVERIES[diaDetalhe]||[]).length===0 && (
-                        <div style={{fontFamily:T.mono,fontSize:10,color:T.muted}}>Nenhuma entrega registrada.</div>
-                      )}
-                      {(DAILY_DELIVERIES[diaDetalhe]||[]).map((e,i)=>(
-                        <div key={e.id} style={{
-                          borderBottom:`1px solid ${T.border}`,
-                          paddingBottom:14,marginBottom:14,
-                          animation:"fadeUp .3s ease both",animationDelay:`${i*0.05}s`,
-                        }}>
-                          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                            <div style={{width:2,height:28,background:e.cor,flexShrink:0}}/>
-                            <div>
-                              <div style={{fontFamily:T.font,fontSize:15,fontWeight:700,letterSpacing:1,color:T.white}}>{e.editor.toUpperCase()}</div>
-                              <div style={{fontFamily:T.mono,fontSize:9,color:T.muted,letterSpacing:1,marginTop:1}}>{e.hora}</div>
-                            </div>
-                          </div>
-                          <div style={{fontFamily:T.mono,fontSize:11,color:T.white,marginBottom:4,paddingLeft:10}}>{e.projeto}</div>
-                          <div style={{display:"flex",gap:8,paddingLeft:10}}>
-                            <span style={{fontFamily:T.mono,fontSize:9,color:T.muted,letterSpacing:1}}>{e.cliente}</span>
-                            <span style={{fontFamily:T.mono,fontSize:9,color:T.muted}}>·</span>
-                            <span style={{fontFamily:T.mono,fontSize:9,letterSpacing:1,color:T.muted}}>V{e.versao}</span>
-                            <span style={{fontFamily:T.mono,fontSize:9,color:T.muted}}>·</span>
-                            <span style={{fontFamily:T.mono,fontSize:9,letterSpacing:1,
-                              color:e.status==="Aprovado"?T.green:e.status==="Em revisão"?T.amber:T.red
-                            }}>{e.status.toUpperCase()}</span>
-                          </div>
+                          }}/>
+                          <Line type="monotone" dataKey={metric} stroke={cfg.cor} strokeWidth={2} dot={false} name={cfg.label}
+                            activeDot={{r:5,fill:cfg.cor,stroke:T.bg,strokeWidth:2,cursor:"pointer",
+                              onClick:(_,payload)=>openDay(payload?.payload?.dia, metric)}}/>
+                        </LineChart>
+                      </ResponsiveContainer>
+                      {isFirst && (
+                        <div style={{display:"flex",gap:4,marginTop:12,flexWrap:"wrap"}}>
+                          {DAILY.map((d,i)=>{
+                            const qtd=(DAILY_DELIVERIES[d.dia]||[]).length;
+                            const isSel=diaDetalhe===d.dia&&metricDetalhe===metric;
+                            return (
+                              <button key={i} onClick={()=>openDay(d.dia,metric)} style={{
+                                background:isSel?cfg.cor:"rgba(255,255,255,0.04)",
+                                border:`1px solid ${isSel?cfg.cor:T.border}`,
+                                color:isSel?"#060606":T.muted,
+                                fontFamily:T.mono,fontSize:8,letterSpacing:1,
+                                padding:"3px 6px",cursor:"pointer",transition:"all .12s",
+                              }}>
+                                {d.dia.split("/")[0]}<span style={{opacity:.7,marginLeft:3}}>{qtd}</span>
+                              </button>
+                            );
+                          })}
                         </div>
-                      ))}
+                      )}
                     </div>
-                  )}
+                    {open && <DetailPanel metric={metric}/>}
+                  </div>
+                </div>
+              );
+            };
+
+            return (
+              <div className="fade">
+                <div style={{border:`1px solid ${T.border}`,marginBottom:1}}>
+                  <ChartBlock metric="entregas" height={200} isFirst={true}/>
+                </div>
+                <div style={{border:`1px solid ${T.border}`}}>
+                  <ChartBlock metric="versoes"      height={90}/>
+                  <ChartBlock metric="correcoes"    height={90}/>
+                  <div style={{background:T.surface}}>
+                    <ChartBlock metric="aprovacao_v1" height={90}/>
+                  </div>
                 </div>
               </div>
-
-              {/* SECONDARY CHARTS */}
-              <div style={{display:"grid",gap:1,border:`1px solid ${T.border}`}}>
-                {[
-                  {key:"versoes",label:"VERSÕES ABERTAS",cor:"#A78BFA"},
-                  {key:"correcoes",label:"CORREÇÕES POR DIA",cor:T.red},
-                  {key:"aprovacao_v1",label:"APROVAÇÃO v1 (%)",cor:T.green},
-                ].map(({key,label,cor},idx)=>(
-                  <div key={key} style={{background:T.surface,padding:"18px 24px",borderBottom:idx<2?`1px solid ${T.border}`:"none"}}>
-                    <div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:14}}>
-                      <div style={{width:3,height:18,background:cor}}/>
-                      <span style={{fontFamily:T.font,fontSize:16,fontWeight:700,letterSpacing:2,color:T.white}}>{label}</span>
-                      <span style={{fontFamily:T.mono,fontSize:9,color:T.muted,letterSpacing:2}}>30 DIAS</span>
-                    </div>
-                    <ResponsiveContainer width="100%" height={80}>
-                      <LineChart data={DAILY} margin={{top:4,right:8,bottom:0,left:-20}}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)"/>
-                        <XAxis dataKey="dia" tick={{fill:T.muted,fontSize:8,fontFamily:T.mono}} tickLine={false} axisLine={false} interval={6}/>
-                        <YAxis tick={{fill:T.muted,fontSize:8,fontFamily:T.mono}} tickLine={false} axisLine={false}/>
-                        <Tooltip content={<Tip/>}/>
-                        <Line type="monotone" dataKey={key} stroke={cor} strokeWidth={2} dot={false} name={label}/>
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                ))}
-              </div>
-
-            </div>
-          )}
+            );
+          })()}
 
           {/* ───────────── AO VIVO ───────────── */}
           {tab==="ao vivo" && (
