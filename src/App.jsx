@@ -243,7 +243,7 @@ const Modal = ({onClose,onAdd}) => {
 export default function App() {
   const [editors,setEditors]       = useState(generateEditors);
   const [radarData]                = useState(()=>Object.fromEntries(EDITORS.map(e=>[e,generateRadar()])));
-  const [tab,setTab]               = useState("overview");
+  const [tab,setTab]               = useState("resumo");
   const [modal,setModal]           = useState(false);
   const [selEditor,setSelEditor]   = useState(null);
   const [rankSub,setRankSub]       = useState("podio");
