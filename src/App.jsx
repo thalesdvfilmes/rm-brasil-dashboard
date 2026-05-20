@@ -177,17 +177,20 @@ const Tip = ({active,payload,label}) => {
 };
 
 // Timecode-style big number
-const BigNum = ({value,label,sub,accent="#E8B84B",metaOk}) => {
+const BigNum = ({value,label,sub,accent="#E8B84B",metaOk,onClick}) => {
   const borderTop = metaOk===true?T.green:metaOk===false?T.red:accent;
   const valColor  = metaOk===true?T.green:metaOk===false?T.red:T.white;
   return (
-    <div style={{borderTop:`2px solid ${borderTop}`,padding:"18px 20px",background:T.surface,position:"relative",overflow:"hidden"}}>
+    <div onClick={onClick} style={{borderTop:`2px solid ${borderTop}`,padding:"18px 20px",background:T.surface,position:"relative",overflow:"hidden",cursor:onClick?"pointer":"default",transition:"background .15s"}}
+      onMouseEnter={e=>{if(onClick) e.currentTarget.style.background="rgba(255,255,255,0.06)";}}
+      onMouseLeave={e=>{if(onClick) e.currentTarget.style.background=T.surface;}}>
       <div style={{position:"absolute",top:0,right:0,width:60,height:60,background:`radial-gradient(circle at top right, ${borderTop}10, transparent 70%)`,pointerEvents:"none"}}/>
       <div style={{fontFamily:T.mono,fontSize:9,letterSpacing:3,textTransform:"uppercase",color:T.muted,marginBottom:10}}>{label}</div>
       <div style={{fontFamily:T.font,fontSize:48,fontWeight:700,lineHeight:1,color:valColor,letterSpacing:-1}}>{value}</div>
       {sub && <div style={{fontFamily:T.mono,fontSize:10,color:metaOk===true?T.green:metaOk===false?T.red:T.muted,marginTop:8,letterSpacing:1}}>
         {metaOk===true&&"▲ "}{metaOk===false&&"▼ "}{sub}
       </div>}
+      {onClick && <div style={{position:"absolute",bottom:10,right:12,fontFamily:T.mono,fontSize:9,color:borderTop,letterSpacing:1,opacity:0.7}}>VER DETALHES →</div>}
     </div>
   );
 };
@@ -297,7 +300,7 @@ export default function App() {
     setEditors(ed=>ed.map(e=>e.nome===form.editor?{...e,entregas:e.entregas+1,pontuacao:Math.min(100,e.pontuacao+(form.versao<=2?3:1))}:e));
   };
 
-  const TABS = ["overview","editores","histórico","ao vivo","ranking","erros"];
+  const TABS = ["resumo","editores","histórico","ao vivo","ranking","erros"];
 
   const selStyle = {
     background:"rgba(255,255,255,0.04)",border:`1px solid ${T.border}`,
@@ -379,7 +382,7 @@ export default function App() {
           {/* PAGE TITLE BAR */}
           <div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:28,borderBottom:`1px solid ${T.border}`,paddingBottom:16}}>
             <span style={{fontFamily:T.font,fontSize:40,fontWeight:900,letterSpacing:2,color:T.white,lineHeight:1,textTransform:"uppercase"}}>
-              {tab === "overview" && "Dashboard Geral"}
+              {tab === "resumo" && "Resumo Geral"}
               {tab === "editores" && "Análise por Editor"}
               {tab === "histórico" && "Histórico de Entregas"}
               {tab === "ao vivo" && "Feed Ao Vivo"}
@@ -395,32 +398,71 @@ export default function App() {
             </span>
           </div>
 
-          {/* ───────────── OVERVIEW ───────────── */}
-          {tab==="overview" && (
+          {/* ───────────── RESUMO ───────────── */}
+          {tab==="resumo" && (
             <div className="fade">
               {/* KPI ROW */}
               <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:1,marginBottom:28,border:`1px solid ${T.border}`}}>
-                <BigNum label="Entregas / mês"     value={totalEntregas}         sub={`▲ +12% vs anterior`}     accent={T.amber}  metaOk={totalEntregas>=50}/>
-                <BigNum label="Aprovação na v1"    value={`${mediaAprovacao}%`}  sub="Meta: 70%"                accent={T.green}  metaOk={mediaAprovacao>=70}/>
-                <BigNum label="Versões / projeto"  value={mediaVersoes}          sub="Ideal: < 2.5"             accent="#A78BFA"  metaOk={parseFloat(mediaVersoes)<2.5}/>
-                <BigNum label="Editores ativos"    value={EDITORS.length}        sub="todos com entrega"        accent="#4ECDC4"  metaOk={true}/>
-                <BigNum label="Projetos em aberto" value={8}                     sub="3 com prazo hoje"         accent={T.red}    metaOk={false}/>
+                <BigNum label="Entregas / mês"     value={totalEntregas}         sub={`▲ +12% vs anterior`}     accent={T.amber}  metaOk={totalEntregas>=50}
+                  onClick={()=>{ setTab("histórico"); setMetricDetalhe("entregas"); setDiaDetalhe(null); }}/>
+                <BigNum label="Aprovação na v1"    value={`${mediaAprovacao}%`}  sub="Meta: 70%"                accent={T.green}  metaOk={mediaAprovacao>=70}
+                  onClick={()=>{ setTab("histórico"); setMetricDetalhe("aprovacao_v1"); setDiaDetalhe(null); }}/>
+                <BigNum label="Versões / projeto"  value={mediaVersoes}          sub="Ideal: < 2.5"             accent="#A78BFA"  metaOk={parseFloat(mediaVersoes)<2.5}
+                  onClick={()=>{ setTab("histórico"); setMetricDetalhe("versoes"); setDiaDetalhe(null); }}/>
+                <BigNum label="Editores ativos"    value={EDITORS.length}        sub="todos com entrega"        accent="#4ECDC4"  metaOk={true}
+                  onClick={()=>{ setTab("editores"); setSelEditor(null); }}/>
+                <BigNum label="Projetos em aberto" value={8}                     sub="3 com prazo hoje"         accent={T.red}    metaOk={false}
+                  onClick={()=>{ setTab("erros"); setErroView("log"); }}/>
               </div>
 
               {/* CHARTS ROW */}
               <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:1,border:`1px solid ${T.border}`,marginBottom:28}}>
-                <div style={{background:T.surface,padding:24}}>
-                  <div style={{fontFamily:T.mono,fontSize:9,letterSpacing:3,textTransform:"uppercase",color:T.muted,marginBottom:4}}>// entregas · correções · versões</div>
-                  <div style={{fontFamily:T.font,fontSize:20,fontWeight:700,letterSpacing:1,marginBottom:20,color:T.white}}>ÚLTIMOS 14 DIAS</div>
+                <div style={{background:T.surface,padding:24,borderRight:`1px solid ${T.border}`}}>
+                  <div style={{display:"flex",alignItems:"baseline",gap:10,marginBottom:4}}>
+                    <div style={{fontFamily:T.mono,fontSize:9,letterSpacing:3,textTransform:"uppercase",color:T.muted}}>// entregas · correções · versões</div>
+                    {ovDia && (
+                      <button onClick={()=>setOvDia(null)} style={{marginLeft:"auto",background:"none",border:`1px solid ${T.border}`,color:T.muted,fontFamily:T.mono,fontSize:9,letterSpacing:2,padding:"2px 8px",cursor:"pointer"}}>FECHAR ✕</button>
+                    )}
+                  </div>
+                  <div style={{fontFamily:T.font,fontSize:20,fontWeight:700,letterSpacing:1,marginBottom:4,color:T.white}}>
+                    ÚLTIMOS 14 DIAS
+                    {!ovDia && <span style={{fontFamily:T.mono,fontSize:9,color:T.muted,letterSpacing:2,marginLeft:12}}>CLIQUE PARA DETALHAR</span>}
+                  </div>
                   <ResponsiveContainer width="100%" height={200}>
-                    <LineChart data={DAILY.slice(-14)} margin={{top:4,right:4,bottom:0,left:-20}}>
+                    <LineChart
+                      data={DAILY.slice(-14)}
+                      margin={{top:4,right:4,bottom:0,left:-20}}
+                      onClick={d=>d?.activePayload && setOvDia(prev => prev===d.activePayload[0]?.payload?.dia ? null : d.activePayload[0]?.payload?.dia)}
+                    >
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)"/>
                       <XAxis dataKey="dia" tick={{fill:T.muted,fontSize:9,fontFamily:T.mono}} tickLine={false} axisLine={false}/>
                       <YAxis tick={{fill:T.muted,fontSize:9,fontFamily:T.mono}} tickLine={false} axisLine={false}/>
-                      <Tooltip content={<Tip/>}/>
-                      <Line type="monotone" dataKey="entregas"  stroke={T.amber} strokeWidth={2} dot={false} name="Entregas"/>
-                      <Line type="monotone" dataKey="correcoes" stroke={T.red}   strokeWidth={1.5} dot={false} name="Correções" strokeDasharray="4 2"/>
-                      <Line type="monotone" dataKey="versoes"   stroke="#A78BFA" strokeWidth={1.5} dot={false} name="Versões"/>
+                      <Tooltip content={({active,payload,label})=>{
+                        if(!active||!payload?.length) return null;
+                        const items = DAILY_DELIVERIES[label]||[];
+                        return (
+                          <div style={{background:"#0E0E0E",border:`1px solid ${T.amber}55`,padding:"10px 12px",fontFamily:T.mono,fontSize:11,minWidth:180}}>
+                            <div style={{color:T.amber,fontFamily:T.font,fontSize:13,fontWeight:700,letterSpacing:2,marginBottom:6}}>{label}</div>
+                            {payload.map((p,i)=><div key={i} style={{color:p.color,fontSize:9,letterSpacing:1,marginBottom:3}}>{p.name?.toUpperCase()}: {p.value}</div>)}
+                            <div style={{borderTop:`1px solid ${T.border}`,paddingTop:6,marginTop:6}}>
+                              {items.slice(0,3).map((e,i)=>(
+                                <div key={i} style={{display:"flex",alignItems:"center",gap:5,marginBottom:3}}>
+                                  <div style={{width:2,height:10,background:e.cor}}/>
+                                  <span style={{color:T.white,fontSize:9}}>{e.editor} · {e.projeto}</span>
+                                </div>
+                              ))}
+                              {items.length>3&&<div style={{color:T.muted,fontSize:9,marginTop:2}}>+ {items.length-3} mais · clique</div>}
+                            </div>
+                          </div>
+                        );
+                      }}/>
+                      <Line type="monotone" dataKey="entregas" stroke={T.amber} strokeWidth={2} dot={false} name="Entregas"
+                        activeDot={{r:5,fill:T.amber,stroke:T.bg,strokeWidth:2,cursor:"pointer",
+                          onClick:(_,p)=>setOvDia(prev=>prev===p?.payload?.dia?null:p?.payload?.dia)}}/>
+                      <Line type="monotone" dataKey="correcoes" stroke={T.red} strokeWidth={1.5} dot={false} name="Correções" strokeDasharray="4 2"
+                        activeDot={{r:4,fill:T.red,stroke:T.bg,strokeWidth:2,cursor:"pointer"}}/>
+                      <Line type="monotone" dataKey="versoes" stroke="#A78BFA" strokeWidth={1.5} dot={false} name="Versões"
+                        activeDot={{r:4,fill:"#A78BFA",stroke:T.bg,strokeWidth:2,cursor:"pointer"}}/>
                     </LineChart>
                   </ResponsiveContainer>
                   <div style={{display:"flex",gap:20,marginTop:12}}>
@@ -430,21 +472,76 @@ export default function App() {
                       </div>
                     ))}
                   </div>
+
+                  {/* DRILL-DOWN PANEL */}
+                  {ovDia && (
+                    <div style={{marginTop:20,borderTop:`1px solid ${T.border}`,paddingTop:16,animation:"fadeUp .25s ease both"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+                        <div style={{fontFamily:T.font,fontSize:22,fontWeight:900,color:T.amber,letterSpacing:2}}>{ovDia}</div>
+                        <div style={{fontFamily:T.mono,fontSize:9,color:T.muted,letterSpacing:2}}>
+                          {(DAILY_DELIVERIES[ovDia]||[]).length} ENTREGA{(DAILY_DELIVERIES[ovDia]||[]).length!==1?"S":""}
+                        </div>
+                      </div>
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:8}}>
+                        {(DAILY_DELIVERIES[ovDia]||[]).map((e,i)=>(
+                          <div key={e.id||i} style={{
+                            background:"rgba(255,255,255,0.025)",padding:"12px 14px",
+                            borderLeft:`2px solid ${e.cor}`,
+                            animation:"fadeUp .3s ease both",animationDelay:`${i*0.04}s`,
+                          }}>
+                            <div style={{fontFamily:T.font,fontSize:14,fontWeight:700,letterSpacing:1,color:T.white,marginBottom:2}}>{e.editor.toUpperCase()}</div>
+                            <div style={{fontFamily:T.mono,fontSize:10,color:T.white,marginBottom:6}}>{e.projeto}</div>
+                            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                              <span style={{fontFamily:T.mono,fontSize:9,color:T.muted}}>{e.hora}</span>
+                              <span style={{fontFamily:T.mono,fontSize:9,color:T.muted}}>·</span>
+                              <span style={{fontFamily:T.mono,fontSize:9,color:T.muted}}>V{e.versao}</span>
+                              <span style={{fontFamily:T.mono,fontSize:9,color:T.muted}}>·</span>
+                              <span style={{fontFamily:T.mono,fontSize:9,
+                                color:e.status==="Aprovado"?T.green:e.status==="Em revisão"?T.amber:T.red,
+                                fontWeight:600,
+                              }}>{e.status?.toUpperCase()}</span>
+                            </div>
+                          </div>
+                        ))}
+                        {(DAILY_DELIVERIES[ovDia]||[]).length===0 && (
+                          <div style={{fontFamily:T.mono,fontSize:10,color:T.muted}}>Sem entregas registradas.</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{background:T.surface,padding:24,borderLeft:`1px solid ${T.border}`}}>
-                  <div style={{fontFamily:T.mono,fontSize:9,letterSpacing:3,textTransform:"uppercase",color:T.muted,marginBottom:4}}>// tipos de erro</div>
+                  <div style={{fontFamily:T.mono,fontSize:9,letterSpacing:3,textTransform:"uppercase",color:T.muted,marginBottom:4}}>// tipos de erro · clique para detalhar</div>
                   <div style={{fontFamily:T.font,fontSize:20,fontWeight:700,letterSpacing:1,marginBottom:20,color:T.white}}>OCORRÊNCIAS</div>
                   <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={TIPO_RESUMO} layout="vertical" margin={{top:0,right:0,left:0,bottom:0}}>
+                    <BarChart data={TIPO_RESUMO} layout="vertical" margin={{top:0,right:0,left:0,bottom:0}}
+                      onClick={d=>{
+                        if(!d?.activePayload) return;
+                        const label = d.activePayload[0]?.payload?.tipo;
+                        const cat   = CATEGORIAS_ERRO.find(c=>c.label===label);
+                        if(cat){ setFiltCat(cat.id); setErroView("overview"); setTab("erros"); }
+                      }}
+                    >
                       <XAxis type="number" hide/>
                       <YAxis type="category" dataKey="tipo" tick={{fill:T.muted,fontSize:9,fontFamily:T.mono}} tickLine={false} axisLine={false} width={75}/>
-                      <Tooltip content={<Tip/>}/>
-                      <Bar dataKey="qtd" radius={[0,2,2,0]} name="Total">
+                      <Tooltip content={({active,payload,label})=>{
+                        if(!active||!payload?.length) return null;
+                        const cat=CATEGORIAS_ERRO.find(c=>c.label===label);
+                        return (
+                          <div style={{background:"#0E0E0E",border:`1px solid ${cat?.cor||T.amber}55`,padding:"10px 12px",fontFamily:T.mono,fontSize:11}}>
+                            <div style={{color:cat?.cor||T.amber,fontFamily:T.font,fontSize:13,fontWeight:700,letterSpacing:2,marginBottom:4}}>{cat?.icon} {label}</div>
+                            <div style={{color:T.white,marginBottom:4}}>{payload[0]?.value} ocorrências</div>
+                            <div style={{color:T.muted,fontSize:9,letterSpacing:1,marginTop:6,borderTop:`1px solid ${T.border}`,paddingTop:5}}>CLIQUE PARA VER NA ABA ERROS →</div>
+                          </div>
+                        );
+                      }}/>
+                      <Bar dataKey="qtd" radius={[0,2,2,0]} name="Total" cursor="pointer">
                         {TIPO_RESUMO.map((_,i)=><Cell key={i} fill={CATEGORIAS_ERRO[i]?.cor||T.amber} opacity={0.8}/>)}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
+                  <div style={{fontFamily:T.mono,fontSize:9,color:T.muted,letterSpacing:2,marginTop:12,textAlign:"center"}}>CLIQUE NA BARRA PARA ABRIR DETALHES →</div>
                 </div>
               </div>
 
