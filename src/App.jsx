@@ -190,7 +190,7 @@ const BigNum = ({value,label,sub,accent="#E8B84B",metaOk,onClick}) => {
       {sub && <div style={{fontFamily:T.mono,fontSize:10,color:metaOk===true?T.green:metaOk===false?T.red:T.muted,marginTop:8,letterSpacing:1}}>
         {metaOk===true&&"▲ "}{metaOk===false&&"▼ "}{sub}
       </div>}
-      {onClick && <div style={{position:"absolute",bottom:10,right:12,fontFamily:T.mono,fontSize:9,color:borderTop,letterSpacing:1,opacity:0.7}}>VER DETALHES →</div>}
+
     </div>
   );
 };
