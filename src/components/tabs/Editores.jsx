@@ -1,9 +1,35 @@
+import { useState } from "react";
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis,
   PolarRadiusAxis, ResponsiveContainer,
 } from "recharts";
 import { T } from "../../tokens";
 import { EDITORS, COLORS, getScoreColor } from "../../data";
+
+const Avatar = ({ nome, cor, size = 36 }) => {
+  const [err, setErr] = useState(false);
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: "50%", flexShrink: 0,
+      border: `2px solid ${cor}`,
+      overflow: "hidden", background: `${cor}22`,
+      display: "flex", alignItems: "center", justifyContent: "center",
+    }}>
+      {!err ? (
+        <img
+          src={`/avatars/${nome.toLowerCase()}.jpg`}
+          alt={nome}
+          onError={() => setErr(true)}
+          style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top" }}
+        />
+      ) : (
+        <span style={{ fontFamily: T.font, fontSize: size * 0.4, fontWeight: 700, color: cor }}>
+          {nome[0].toUpperCase()}
+        </span>
+      )}
+    </div>
+  );
+};
 
 const ScoreTag = ({ score }) => {
   const c = score >= 80 ? T.green : score >= 65 ? T.amber : T.red;
@@ -41,10 +67,12 @@ export default function Editores({ editors, radarData, selEditor, setSelEditor }
                 fontFamily: T.mono, fontSize: 10, letterSpacing: 2,
                 padding: "6px 14px", cursor: "pointer",
                 transition: `all ${T.fast}`,
+                display: "flex", alignItems: "center", gap: 8,
               }}
               onMouseEnter={e => { if (!active) { e.currentTarget.style.color = T.white; e.currentTarget.style.borderColor = T.borderHov; } }}
               onMouseLeave={e => { if (!active) { e.currentTarget.style.color = T.muted; e.currentTarget.style.borderColor = T.border; } }}
             >
+              <Avatar nome={n} cor={COLORS[i]} size={20} />
               {n.toUpperCase()}
             </button>
           );
@@ -81,7 +109,7 @@ export default function Editores({ editors, radarData, selEditor, setSelEditor }
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 2, height: 24, background: e.cor }} />
+                <Avatar nome={e.nome} cor={e.cor} size={36} />
                 <span style={{ fontFamily: T.font, fontSize: 16, fontWeight: 700, letterSpacing: 1, color: T.white }}>
                   {e.nome.toUpperCase()}
                 </span>
@@ -106,8 +134,11 @@ export default function Editores({ editors, radarData, selEditor, setSelEditor }
           <div style={{ fontFamily: T.mono, fontSize: 9, letterSpacing: 3, textTransform: "uppercase", color: T.muted, marginBottom: 4 }}>
             // radar de performance
           </div>
-          <div style={{ fontFamily: T.font, fontSize: 24, fontWeight: 700, letterSpacing: 2, color: T.white, marginBottom: 24 }}>
-            {selEditor.toUpperCase()}
+          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
+            <Avatar nome={selEditor} cor={COLORS[EDITORS.indexOf(selEditor)]} size={56} />
+            <span style={{ fontFamily: T.font, fontSize: 24, fontWeight: 700, letterSpacing: 2, color: T.white }}>
+              {selEditor.toUpperCase()}
+            </span>
           </div>
           <ResponsiveContainer width="100%" height={300}>
             <RadarChart data={radarData[selEditor]}>
