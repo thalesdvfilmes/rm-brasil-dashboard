@@ -210,7 +210,7 @@ export default function Resumo({ editors, setTab, setMetricDetalhe, setDiaDetalh
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 0 }}>
           {[...editors].sort((a, b) => b.pontuacao - a.pontuacao).map((e, i) => {
-            const sc = getScoreColor(e.pontuacao, editors.map(x => x.pontuacao));
+            const sc = getScoreColor(e.pontuacao);
             return (
               <div
                 key={e.nome}

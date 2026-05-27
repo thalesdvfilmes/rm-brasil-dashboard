@@ -140,10 +140,9 @@ export const getDayDetail = (dia, metric) => {
   return base;
 };
 
-export const getScoreColor = (score, all) => {
-  const avg = all.reduce((s, v) => s + v, 0) / all.length;
-  const std = Math.sqrt(all.reduce((s, v) => s + Math.pow(v - avg, 2), 0) / all.length);
-  if (score >= avg + std * 0.4) return "#2ECC71";
-  if (score >= avg - std * 0.4) return "#E8B84B";
+export const getScoreColor = (score) => {
+  if (score >= 85) return "#6AE68A";
+  if (score >= 70) return "#2ECC71";
+  if (score >= 40) return "#E8B84B";
   return "#E8453C";
 };

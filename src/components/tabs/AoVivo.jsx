@@ -54,7 +54,7 @@ export default function AoVivo({ editors, feed }) {
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
           {editors.map(e => {
-            const sc = getScoreColor(e.pontuacao, editors.map(x => x.pontuacao));
+            const sc = getScoreColor(e.pontuacao);
             return (
               <div
                 key={e.nome}

@@ -97,7 +97,7 @@ export default function Editores({ editors, radarData, selEditor, setSelEditor }
         </div>
 
         {[...editors].sort((a, b) => b.pontuacao - a.pontuacao).map(e => {
-          const sc      = getScoreColor(e.pontuacao, scores);
+          const sc      = getScoreColor(e.pontuacao);
           const isActive = selEditor === e.nome;
           return (
             <div
