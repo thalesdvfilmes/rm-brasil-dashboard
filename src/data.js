@@ -21,15 +21,31 @@ const PROJETOS_POOL = [
   "Spot Rádio", "Vídeo Produto", "Manifesto Marca", "Viral Social",
 ];
 
-export const generateEditors = () => EDITORS.map((nome, i) => ({
-  nome, cor: COLORS[i],
-  entregas:        i === 0 ? rnd(35, 40)  : rnd(15, 35),
-  versoes_media:   i === 0 ? +(Math.random() * 0.6 + 1.0).toFixed(1) : +(Math.random() * 2 + 1.4).toFixed(1),
-  taxa_aprovacao:  i === 0 ? rnd(80, 95)  : rnd(48, 82),
-  prazo:           i === 0 ? rnd(92, 99)  : rnd(62, 95),
-  correcoes_media: i === 0 ? +(Math.random() * 0.8 + 0.2).toFixed(1) : +(Math.random() * 3 + 0.8).toFixed(1),
-  pontuacao:       i === 0 ? rnd(90, 99)  : rnd(58, 88),
-}));
+// Pesos: aprovação v1 35% | prazo 25% | versões (invertido) 20% | correções (invertido) 20%
+export const calcPontuacao = (e) => {
+  const aprovScore    = e.taxa_aprovacao;
+  const prazoScore    = e.prazo;
+  const versoesScore  = Math.max(0, Math.min(100, (3.5 - e.versoes_media) / 2.5 * 100));
+  const correcoesScore = Math.max(0, Math.min(100, (4 - e.correcoes_media) / 4 * 100));
+  return Math.round(
+    aprovScore     * 0.35 +
+    prazoScore     * 0.25 +
+    versoesScore   * 0.20 +
+    correcoesScore * 0.20
+  );
+};
+
+export const generateEditors = () => EDITORS.map((nome, i) => {
+  const e = {
+    nome, cor: COLORS[i],
+    entregas:        i === 0 ? rnd(35, 40)  : rnd(15, 35),
+    versoes_media:   i === 0 ? +(Math.random() * 0.6 + 1.0).toFixed(1) : +(Math.random() * 2 + 1.4).toFixed(1),
+    taxa_aprovacao:  i === 0 ? rnd(80, 95)  : rnd(48, 82),
+    prazo:           i === 0 ? rnd(92, 99)  : rnd(62, 95),
+    correcoes_media: i === 0 ? +(Math.random() * 0.8 + 0.2).toFixed(1) : +(Math.random() * 3 + 0.8).toFixed(1),
+  };
+  return { ...e, pontuacao: calcPontuacao(e) };
+});
 
 export const generateRadar = () => [
   { metric: "Prazo",        value: rnd(60, 95) },

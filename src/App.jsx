@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { T } from "./tokens";
 import {
-  generateEditors, generateRadar, EDITORS, COLORS,
+  generateEditors, generateRadar, calcPontuacao, EDITORS, COLORS,
 } from "./data";
 
 import Nav    from "./components/Nav";
@@ -56,11 +56,19 @@ export default function App() {
       { time, text: `${form.editor} entregou v${form.versao}${form.projeto ? ` — ${form.projeto}` : ""}`, cor: COLORS[EDITORS.indexOf(form.editor)] || T.amber },
       ...f.slice(0, 9),
     ]);
-    setEditors(ed => ed.map(e =>
-      e.nome === form.editor
-        ? { ...e, entregas: e.entregas + 1, pontuacao: Math.min(100, e.pontuacao + (form.versao <= 2 ? 3 : 1)) }
-        : e
-    ));
+    setEditors(ed => ed.map(e => {
+      if (e.nome !== form.editor) return e;
+      const n = e.entregas + 1;
+      const updated = {
+        ...e,
+        entregas:        n,
+        versoes_media:   +((e.versoes_media * e.entregas + form.versao) / n).toFixed(1),
+        taxa_aprovacao:  Math.round((e.taxa_aprovacao * e.entregas + (form.versao === 1 ? 100 : 0)) / n),
+        prazo:           Math.round((e.prazo * e.entregas + (form.prazo === "sim" ? 100 : 0)) / n),
+        correcoes_media: +((e.correcoes_media * e.entregas + form.correcoes) / n).toFixed(1),
+      };
+      return { ...updated, pontuacao: calcPontuacao(updated) };
+    }));
   };
 
   return (
