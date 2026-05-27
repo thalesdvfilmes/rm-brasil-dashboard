@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis,
   PolarRadiusAxis, ResponsiveContainer,
@@ -6,39 +5,44 @@ import {
 import { T } from "../../tokens";
 import { EDITORS, COLORS, getScoreColor } from "../../data";
 
-const Avatar = ({ nome, cor, size = 36 }) => {
-  const [err, setErr] = useState(false);
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: "50%", flexShrink: 0,
-      border: `2px solid ${cor}`,
-      overflow: "hidden", background: `${cor}22`,
-      display: "flex", alignItems: "center", justifyContent: "center",
-    }}>
-      {!err ? (
-        <img
-          src={`/avatars/${nome.toLowerCase()}.jpg`}
-          alt={nome}
-          onError={() => setErr(true)}
-          style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top" }}
-        />
-      ) : (
-        <span style={{ fontFamily: T.font, fontSize: size * 0.4, fontWeight: 700, color: cor }}>
-          {nome[0].toUpperCase()}
-        </span>
-      )}
-    </div>
-  );
-};
+const Avatar = ({ nome, cor, size = 36 }) => (
+  <div style={{
+    width: size, height: size, borderRadius: "50%", flexShrink: 0,
+    border: `2px solid ${cor}`, overflow: "hidden",
+    background: `${cor}22`,
+    display: "flex", alignItems: "center", justifyContent: "center",
+    position: "relative",
+  }}>
+    <span style={{ fontFamily: T.font, fontSize: size * 0.4, fontWeight: 700, color: cor }}>
+      {nome[0].toUpperCase()}
+    </span>
+    <img
+      src={`/avatars/${nome.toLowerCase()}.jpg`}
+      alt={nome}
+      onError={e => { e.currentTarget.style.display = "none"; }}
+      style={{
+        position: "absolute", inset: 0,
+        width: "100%", height: "100%",
+        objectFit: "cover", objectPosition: "center top",
+      }}
+    />
+  </div>
+);
+
+const SCORE_LEVELS = [
+  { min: 85,  label: "EXCELENTE",   color: "#6AE68A" },
+  { min: 70,  label: "ACIMA",       color: T.green   },
+  { min: 40,  label: "ABAIXO",      color: T.amber   },
+  { min: 0,   label: "MUITO ABAIXO", color: T.red    },
+];
 
 const ScoreTag = ({ score }) => {
-  const c = score >= 80 ? T.green : score >= 65 ? T.amber : T.red;
-  if (score < 80) return null;
+  const { label, color } = SCORE_LEVELS.find(l => score >= l.min);
   return (
     <span style={{
-      fontFamily: T.mono, fontSize: 9, color: c, letterSpacing: 2,
-      border: `1px solid ${c}55`, padding: "2px 6px",
-    }}>ACIMA</span>
+      fontFamily: T.mono, fontSize: 9, color, letterSpacing: 2,
+      border: `1px solid ${color}55`, padding: "2px 6px", whiteSpace: "nowrap",
+    }}>{label}</span>
   );
 };
 
