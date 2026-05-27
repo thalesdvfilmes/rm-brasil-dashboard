@@ -46,10 +46,18 @@ const ScoreTag = ({ score }) => {
   );
 };
 
-const MetricCell = ({ value, good, bad }) => {
-  const color = value >= good ? T.green : value <= bad ? T.red : T.amber;
-  return <div style={{ fontFamily: T.mono, fontSize: 12, color, alignSelf: "center" }}>{value}</div>;
-};
+const C = { ex: "#6AE68A", ac: T.green, ab: T.amber, mb: T.red };
+
+// Aprovação v1 e No prazo — maior é melhor
+const pctColor    = v => v >= 85 ? C.ex : v >= 70 ? C.ac : v >= 40 ? C.ab : C.mb;
+// Versões/proj — menor é melhor
+const versoesColor = v => v <= 1.5 ? C.ex : v <= 2.2 ? C.ac : v <= 3.0 ? C.ab : C.mb;
+// Correções/proj — menor é melhor
+const correcoesColor = v => v <= 0.8 ? C.ex : v <= 1.5 ? C.ac : v <= 3.0 ? C.ab : C.mb;
+
+const MetricCell = ({ value, color }) => (
+  <div style={{ fontFamily: T.mono, fontSize: 12, color, alignSelf: "center" }}>{value}</div>
+);
 
 export default function Editores({ editors, radarData, selEditor, setSelEditor }) {
   const scores = editors.map(x => x.pontuacao);
@@ -119,10 +127,10 @@ export default function Editores({ editors, radarData, selEditor, setSelEditor }
                 </span>
               </div>
               <div style={{ fontFamily: T.mono, fontSize: 12, color: T.white, alignSelf: "center" }}>{e.entregas}</div>
-              <MetricCell value={e.versoes_media} good={0} bad={2.5} />
-              <MetricCell value={`${e.taxa_aprovacao}%`} good={60} bad={40} />
-              <MetricCell value={`${e.prazo}%`} good={80} bad={60} />
-              <MetricCell value={e.correcoes_media} good={0} bad={3} />
+              <MetricCell value={e.versoes_media}        color={versoesColor(e.versoes_media)} />
+              <MetricCell value={`${e.taxa_aprovacao}%`} color={pctColor(e.taxa_aprovacao)} />
+              <MetricCell value={`${e.prazo}%`}          color={pctColor(e.prazo)} />
+              <MetricCell value={e.correcoes_media}      color={correcoesColor(e.correcoes_media)} />
               <div style={{ display: "flex", alignItems: "center", gap: 10, alignSelf: "center" }}>
                 <span style={{ fontFamily: T.font, fontSize: 26, fontWeight: 900, color: sc, lineHeight: 1 }}>{e.pontuacao}</span>
                 <ScoreTag score={e.pontuacao} />
