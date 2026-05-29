@@ -130,6 +130,19 @@ export default function Editores({ editors, radarData, selEditor, setSelEditor }
         })}
       </div>
 
+      {/* Empty state hint */}
+      {!selEditor && (
+        <div style={{
+          border: `1px solid ${T.border}`, borderTop: "none",
+          padding: "20px 28px",
+          display: "flex", alignItems: "center", gap: 10,
+        }}>
+          <span style={{ fontFamily: T.mono, fontSize: 9, color: T.muted, letterSpacing: 2 }}>
+            ↑ SELECIONE UM EDITOR PARA VER O RADAR DE PERFORMANCE
+          </span>
+        </div>
+      )}
+
       {/* Radar chart */}
       {selEditor && (
         <div className="fade" style={{ border: `1px solid ${T.border}`, padding: 28 }}>

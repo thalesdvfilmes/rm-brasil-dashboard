@@ -160,19 +160,27 @@ function ChartBlock({ metric, height = 160, isFirst = false, diaDetalhe, setDiaD
           </ResponsiveContainer>
 
           {isFirst && (
-            <div style={{ display: "flex", gap: 4, marginTop: 12, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 6, marginTop: 16, flexWrap: "wrap" }}>
               {DAILY.map((d, i) => {
                 const qtd   = (DAILY_DELIVERIES[d.dia] || []).length;
                 const isSel = diaDetalhe === d.dia && metricDetalhe === metric;
                 return (
-                  <button key={i} onClick={() => openDay(d.dia, metric)} style={{
-                    background: isSel ? cfg.cor : "rgba(255,255,255,0.04)",
-                    border: `1px solid ${isSel ? cfg.cor : "rgba(255,255,255,0.07)"}`,
-                    color: isSel ? "#060606" : "#5A5650",
-                    fontFamily: "'IBM Plex Mono',monospace", fontSize: 8, letterSpacing: 1,
-                    padding: "3px 6px", cursor: "pointer", transition: "all 0.12s",
+                  <button key={i} onClick={() => openDay(d.dia, metric)} title={d.dia} style={{
+                    background: isSel ? cfg.cor : "rgba(255,255,255,0.05)",
+                    border: `1px solid ${isSel ? cfg.cor : "rgba(255,255,255,0.09)"}`,
+                    color: isSel ? "#060606" : "#8A8480",
+                    fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, letterSpacing: 0,
+                    padding: "5px 9px", cursor: "pointer", transition: "all 0.12s",
+                    display: "flex", alignItems: "center", gap: 4,
                   }}>
-                    {d.dia.split("/")[0]}<span style={{ opacity: 0.7, marginLeft: 3 }}>{qtd}</span>
+                    <span>{d.dia.split("/")[0]}/{d.dia.split("/")[1]}</span>
+                    {qtd > 0 && (
+                      <span style={{
+                        background: isSel ? "rgba(0,0,0,0.2)" : cfg.cor + "33",
+                        color: isSel ? "#060606" : cfg.cor,
+                        fontSize: 8, padding: "1px 4px", borderRadius: 2,
+                      }}>{qtd}</span>
+                    )}
                   </button>
                 );
               })}

@@ -44,9 +44,8 @@ export default function Nav({ tab, setTab, onNewDelivery }) {
           <span style={{
             fontFamily: T.mono, fontSize: 8, color: T.muted,
             letterSpacing: 3, borderLeft: `1px solid ${T.border}`, paddingLeft: 12,
-            lineHeight: 1.4,
           }}>
-            DASH<br />BOARD
+            DASHBOARD
           </span>
         </div>
 

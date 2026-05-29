@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T } from "../../tokens";
-import { EDITORS, COLORS, MONTHS, CUR_M, MONTHLY_SCORES, ACCUMULATED } from "../../data";
+import { EDITORS, COLORS, MONTHS, CUR_M, MONTHLY_SCORES, ACCUMULATED, SCORE_LEVELS } from "../../data";
 import Tip from "../Tip";
 
 const SUB_TABS = ["podio", "tabela", "evolução", "conquistas"];
@@ -41,21 +41,22 @@ export default function Ranking({ editors }) {
           <div style={{ borderBottom: `1px solid ${T.border}`, padding: "36px 0 0", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
             {[ranked[1], ranked[0], ranked[2]].map((v, i) => {
               if (!v) return null;
-              const h        = [120, 160, 90][i];
-              const medals   = ["🥈", "🥇", "🥉"];
-              const accents  = [T.muted, T.amber, "#CD7F32"];
+              const h       = [140, 180, 110][i];
+              const medals  = ["🥈", "🥇", "🥉"];
+              const accents = [T.muted, T.amber, "#CD7F32"];
+              const ac      = accents[i];
               return (
-                <div key={v.nome} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, flex: 1 }}>
+                <div key={v.nome} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, flex: 1 }}>
                   <div style={{ fontFamily: T.mono, fontSize: 9, color: T.muted, letterSpacing: 2 }}>{v.nome.toUpperCase()}</div>
-                  <div style={{ fontFamily: T.font, fontSize: 48, fontWeight: 900, color: accents[i], lineHeight: 1, letterSpacing: -1 }}>{v.total}</div>
+                  <div style={{ fontFamily: T.font, fontSize: 52, fontWeight: 900, color: ac, lineHeight: 1, letterSpacing: -1 }}>{v.total}</div>
                   <div style={{ fontFamily: T.mono, fontSize: 9, color: T.muted, letterSpacing: 1 }}>PTS ACUMULADOS</div>
                   <div style={{
                     width: "100%", height: h,
-                    background: `linear-gradient(to top, ${accents[i]}18, transparent)`,
-                    borderTop: `2px solid ${accents[i]}`,
+                    background: `linear-gradient(to top, ${ac}28 0%, ${ac}08 60%, transparent 100%)`,
+                    borderTop: `2px solid ${ac}`,
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}>
-                    <span style={{ fontSize: 32 }}>{medals[i]}</span>
+                    <span style={{ fontSize: 36 }}>{medals[i]}</span>
                   </div>
                 </div>
               );
@@ -107,8 +108,9 @@ export default function Ranking({ editors }) {
                   <span style={{ fontFamily: T.font, fontSize: 13, fontWeight: 700, letterSpacing: 1, color: T.white }}>{nome.toUpperCase()}</span>
                 </div>
                 {MONTHLY_SCORES[ei].slice(0, CUR_M).map((s, mi) => {
-                  const bg = s >= 85 ? "rgba(46,204,113,0.15)" : s >= 70 ? "rgba(232,184,75,0.15)" : "rgba(232,69,60,0.15)";
-                  const fg = s >= 85 ? T.green : s >= 70 ? T.amber : T.red;
+                  const level = SCORE_LEVELS.find(l => s >= l.min) ?? SCORE_LEVELS[SCORE_LEVELS.length - 1];
+                  const fg = level.color;
+                  const bg = `${fg}22`;
                   return (
                     <div key={mi} style={{ background: bg, color: fg, padding: "5px 0", fontFamily: T.mono, fontSize: 10, textAlign: "center", fontWeight: 500 }}>
                       {s}
