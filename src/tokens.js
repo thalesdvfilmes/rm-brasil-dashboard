@@ -12,6 +12,7 @@ export const T = {
   red:        "#E8453C",
   redDim:     "rgba(232,69,60,0.12)",
   green:      "#2ECC71",
+  greenLight: "#6AE68A",
   greenDim:   "rgba(46,204,113,0.12)",
   white:      "#F0EDE6",
   muted:      "#5A5650",

@@ -3,7 +3,7 @@ import {
   PolarRadiusAxis, ResponsiveContainer,
 } from "recharts";
 import { T } from "../../tokens";
-import { EDITORS, COLORS, getScoreColor } from "../../data";
+import { EDITORS, COLORS, SCORE_LEVELS, getScoreColor } from "../../data";
 
 const Avatar = ({ nome, cor, size = 36 }) => (
   <div style={{
@@ -14,7 +14,7 @@ const Avatar = ({ nome, cor, size = 36 }) => (
     position: "relative",
   }}>
     <span style={{ fontFamily: T.font, fontSize: size * 0.4, fontWeight: 700, color: cor }}>
-      {nome[0].toUpperCase()}
+      {(nome?.[0] ?? "?").toUpperCase()}
     </span>
     <img
       src={`/avatars/${nome.toLowerCase()}.jpg`}
@@ -29,38 +29,28 @@ const Avatar = ({ nome, cor, size = 36 }) => (
   </div>
 );
 
-const SCORE_LEVELS = [
-  { min: 85,  label: "EXCELENTE",   color: "#6AE68A" },
-  { min: 70,  label: "ACIMA",       color: T.green   },
-  { min: 40,  label: "ABAIXO",      color: T.amber   },
-  { min: 0,   label: "MUITO ABAIXO", color: T.red    },
-];
-
+// ScoreTag usa SCORE_LEVELS importado de data.js — fonte única de verdade
 const ScoreTag = ({ score }) => {
-  const { label, color } = SCORE_LEVELS.find(l => score >= l.min);
+  const level = SCORE_LEVELS.find(l => score >= l.min) ?? SCORE_LEVELS[SCORE_LEVELS.length - 1];
   return (
     <span style={{
-      fontFamily: T.mono, fontSize: 9, color, letterSpacing: 2,
-      border: `1px solid ${color}55`, padding: "2px 6px", whiteSpace: "nowrap",
-    }}>{label}</span>
+      fontFamily: T.mono, fontSize: 9, color: level.color, letterSpacing: 2,
+      border: `1px solid ${level.color}55`, padding: "2px 6px", whiteSpace: "nowrap",
+    }}>{level.label}</span>
   );
 };
 
-const C = { ex: "#6AE68A", ac: T.green, ab: T.amber, mb: T.red };
-
-// Aprovação v1 e No prazo — maior é melhor
-const pctColor    = v => v >= 85 ? C.ex : v >= 70 ? C.ac : v >= 40 ? C.ab : C.mb;
+// pctColor = getScoreColor (mesmos limiares, reutilizado de data.js)
 // Versões/proj — menor é melhor
-const versoesColor = v => v <= 1.5 ? C.ex : v <= 2.2 ? C.ac : v <= 3.0 ? C.ab : C.mb;
+const versoesColor   = v => v <= 1.5 ? T.greenLight : v <= 2.2 ? T.green : v <= 3.0 ? T.amber : T.red;
 // Correções/proj — menor é melhor
-const correcoesColor = v => v <= 0.8 ? C.ex : v <= 1.5 ? C.ac : v <= 3.0 ? C.ab : C.mb;
+const correcoesColor = v => v <= 0.8 ? T.greenLight : v <= 1.5 ? T.green : v <= 3.0 ? T.amber : T.red;
 
 const MetricCell = ({ value, color }) => (
   <div style={{ fontFamily: T.mono, fontSize: 12, color, alignSelf: "center" }}>{value}</div>
 );
 
 export default function Editores({ editors, radarData, selEditor, setSelEditor }) {
-  const scores = editors.map(x => x.pontuacao);
 
   return (
     <div className="fade">
@@ -128,8 +118,8 @@ export default function Editores({ editors, radarData, selEditor, setSelEditor }
               </div>
               <div style={{ fontFamily: T.mono, fontSize: 12, color: T.white, alignSelf: "center" }}>{e.entregas}</div>
               <MetricCell value={e.versoes_media}        color={versoesColor(e.versoes_media)} />
-              <MetricCell value={`${e.taxa_aprovacao}%`} color={pctColor(e.taxa_aprovacao)} />
-              <MetricCell value={`${e.prazo}%`}          color={pctColor(e.prazo)} />
+              <MetricCell value={`${e.taxa_aprovacao}%`} color={getScoreColor(e.taxa_aprovacao)} />
+              <MetricCell value={`${e.prazo}%`}          color={getScoreColor(e.prazo)} />
               <MetricCell value={e.correcoes_media}      color={correcoesColor(e.correcoes_media)} />
               <div style={{ display: "flex", alignItems: "center", gap: 10, alignSelf: "center" }}>
                 <span style={{ fontFamily: T.font, fontSize: 26, fontWeight: 900, color: sc, lineHeight: 1 }}>{e.pontuacao}</span>

@@ -1,3 +1,5 @@
+import { T } from "./tokens";
+
 export const EDITORS  = ["Thales", "Enzo", "Renan", "Mazala", "Matheus"];
 export const COLORS   = ["#E8B84B", "#E8453C", "#4ECDC4", "#A78BFA", "#2ECC71"];
 export const CLIENTES = ["Banco Digital", "Saúde Total", "Varejo XYZ", "Construtora Sul", "Agência Nova"];
@@ -140,9 +142,15 @@ export const getDayDetail = (dia, metric) => {
   return base;
 };
 
+// Fonte única de verdade para os 4 níveis de performance
+export const SCORE_LEVELS = [
+  { min: 85, label: "EXCELENTE",    color: T.greenLight },
+  { min: 70, label: "ACIMA",        color: T.green      },
+  { min: 40, label: "ABAIXO",       color: T.amber      },
+  { min: 0,  label: "MUITO ABAIXO", color: T.red        },
+];
+
 export const getScoreColor = (score) => {
-  if (score >= 85) return "#6AE68A";
-  if (score >= 70) return "#2ECC71";
-  if (score >= 40) return "#E8B84B";
-  return "#E8453C";
+  const level = SCORE_LEVELS.find(l => score >= l.min);
+  return level ? level.color : T.red;
 };
